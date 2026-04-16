@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, CheckCircle2, Circle, Send, Terminal, Trash2, Zap } from 'lucide-react';
+import { Sparkles, CheckCircle2, Send, Terminal, Trash2, Zap } from 'lucide-react';
 import { planTask } from './lib/agent';
 
 interface Step {
@@ -119,7 +119,6 @@ function App() {
             ))}
           </AnimatePresence>
 
-          {/* Welcome State */}
           {!loading && steps.length === 0 && (
             <motion.div 
               initial={{ opacity: 0 }}
