@@ -1,41 +1,50 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Initialize with your VITE_ prefix key
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_OPENAI_API_KEY);
+/**
+ * Accessing the API key using a type assertion to bypass 
+ * the 'ImportMeta' build error on the Vercel server.
+ */
+const getApiKey = () => {
+  const env = (import.meta as any).env;
+  return env.VITE_OPENAI_API_KEY;
+};
+
+const genAI = new GoogleGenerativeAI(getApiKey());
 
 export const planTask = async (userInput: string) => {
   /**
-   * IN 2026: 'gemini-3.1-flash' is the high-performance model.
-   * We use the 'latest' alias to ensure it always finds the active model.
+   * IN 2026: 'gemini-flash-latest' is the recommended alias for 
+   * the most stable Gemini 3 Flash model.
    */
-  const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-flash-latest" 
+  });
 
-  const prompt = `You are an Agentic Automator. 
-  Break down the following goal into exactly 3 executable steps. 
-  Return ONLY a JSON array in this exact format: 
+  const prompt = `You are an AI Task Architect.
+  Break down the following goal into exactly 3 clear, actionable steps.
+  Return ONLY a raw JSON array in this exact format:
   [{"step": 1, "task": "description", "status": "pending"}]
   
   Goal: ${userInput}`;
 
   try {
     const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const response = await result.response;
+    const text = response.text();
 
-    // Clean up markdown code blocks if the AI includes them
+    // Remove markdown code blocks if the AI includes them
     const cleanJson = text.replace(/```json|```/g, "").trim();
     return JSON.parse(cleanJson);
     
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    
-    // If the error is a 429 (Rate Limit), tell the user to wait
+    console.error("Agent Error:", error);
+
+    // Handle Rate Limiting (Quota)
     if (error.message?.includes("429")) {
-      throw new Error("The AI is taking a breather. Please wait 30 seconds.");
+      throw new Error("AI Quota reached. Please wait 60 seconds and try again.");
     }
     
-    // If it's a 404, we try the newest preview name as a last resort
-    const fallbackModel = genAI.getGenerativeModel({ model: "gemini-3.1-flash-preview" });
-    const fallbackResult = await fallbackModel.generateContent(prompt);
-    return JSON.parse(fallbackResult.response.text().replace(/```json|```/g, "").trim());
+    // Generic fallback for network or model errors
+    throw new Error("Failed to plan task. Please check your connection.");
   }
 };
